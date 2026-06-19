@@ -1,0 +1,36 @@
+# .github/workflows/terraform.yml
+name: "Terraform PR and Deploy"
+
+on:
+  pull_request:
+    types: [opened, synchronize, closed]
+    branches:
+      - main
+
+jobs:
+  terraform:
+    name: "Terraform Plan & Apply"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      # Run PLAN only if the PR is open (opened or updated)
+      - name: Terraform Plan
+        if: github.event.action != 'closed'
+        run: terraform plan -no-color
+
+      # Run APPLY only if the PR was closed AND it was actually merged
+      - name: Terraform Apply
+        if: github.event.action == 'closed' && github.event.pull_request.merged == true
+        run: terraform apply -auto-approve
